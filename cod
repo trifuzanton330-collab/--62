@@ -2,8 +2,8 @@ import telebot
 import requests
 
 # Замените на свои данные
-BOT_TOKEN = "8766079331:AAHzxZsiWwWfkLjvxqmFcNrE2XMWRTj9aXs"
-MAPS_API_KEY = "8644043273:AAG_ojRPNAERf5pPUg_3hK9KBHPUQwvX-AI"
+BOT_TOKEN = "bgdcszgybucduhbcxzbhycxhbyuxcuhbcuhbxhubcxhubcx"
+MAPS_API_KEY = "vdtdtdtdtdtdtdtdtdtdtdtbgdzgbyzdbgyudcgcdszbcgnsbdczsbngysdc"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 user_data = {}
