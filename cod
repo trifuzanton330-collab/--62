@@ -1,0 +1,89 @@
+import telebot
+import requests
+
+# Замените на свои данные
+BOT_TOKEN = "8766079331:AAHzxZsiWwWfkLjvxqmFcNrE2XMWRTj9aXs"
+MAPS_API_KEY = "8644043273:AAG_ojRPNAERf5pPUg_3hK9KBHPUQwvX-AI"
+
+bot = telebot.TeleBot(BOT_TOKEN)
+user_data = {}
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn = telebot.types.KeyboardButton("📍  Отправить геолокацию", request_location=True)
+    markup.add(btn)
+    bot.send_message(message.chat.id, "Отправьте геолокацию, чтобы найти ближайшие аптеки:", reply_markup=markup)
+
+@bot.message_handler(content_types=['location'])
+def get_location(message):
+    user_id = message.from_user.id
+    lat, lon = message.location.latitude, message.location.longitude
+    user_data[user_id] = {'lat': lat, 'lon': lon}
+
+    # Поиск аптек через Яндекс Карты
+    url = "https://search-maps.yandex.ru/v1/"
+    params = {
+        'apikey': MAPS_API_KEY,
+        'text': 'аптека',
+        'lang': 'ru_RU',
+        'll': f'{lon},{lat}',
+        'spn': '0.01,0.01',
+        'type': 'biz',
+        'results': 3
+    }
+    try:
+        response = requests.get(url, params=params)
+        data = response.json()
+        pharmacies = data.get('features', [])[:3]
+
+        if pharmacies:
+            text = "🏥  Ближайшие аптеки:\n\n"
+            for i, p in enumerate(pharmacies, 1):
+                name = p['properties']['name']
+                addr = p['properties'].get('description', 'Адрес неизвестен')
+                text += f"{i}. {name}\n📍  {addr}\n\n"
+            bot.send_message(message.chat.id, text)
+            bot.send_message(message.chat.id, "Введите название лекарства:")
+        else:
+            bot.send_message(message.chat.id, "Аптеки не найдены. Попробуйте ещё раз.")
+    except Exception as e:
+        bot.send_message(message.chat.id, f"Ошибка: {e}")
+
+@bot.message_handler(func=lambda m: True)
+def search_medicine(message):
+    user_id = message.from_user.id
+    name = message.text.strip()
+
+    if user_id not in user_data:
+        bot.send_message(message.chat.id, "Сначала отправьте геолокацию!")
+        return
+
+    # Фиктивные данные для демонстрации
+    sample_meds = {
+        "анальгин": {
+            "противопоказания": "Гиперчувствительность, язва, астма, проблемы с почками/печенью",
+            "в_аптеках": ["Аптека №1", "Аптека №3"]
+        },
+        "парацетамол": {
+            "противопоказания": "Аллергия, тяжёлые проблемы с печенью/почками",
+            "в_аптеках": ["Аптека №2"]
+        }
+    }
+
+    info = sample_meds.get(name.lower())
+    if info:
+        text = f"💊  {name.capitalize()}\n\n"
+        text += f"⚠️  Противопоказания: {info['противопоказания']}\n\n"
+        if info['в_аптеках']:
+            text += "🏥  Есть в аптеках:\n" + "\n".join(f"• {p}" for p in info['в_аптеках'])
+        else:
+            text += "❌ Нет в наличии"
+        text += "\n\n❗ Перед применением проконсультируйтесь с врачом!"
+        bot.send_message(message.chat.id, text)
+    else:
+        bot.send_message(message.chat.id, f"Лекарство '{name}' не найдено.")
+
+if name == "main":
+    print("Бот запущен...")
+    bot.infinity_polling()
